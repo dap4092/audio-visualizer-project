@@ -33,9 +33,8 @@
 		var audioElement;
 		var analyserNode;
 		var canvas,ctx;
-		var maxRadius;
-		var invert = false, tintRed = false, noise = false, lines = false;
-		
+		var maxRadius = 100;
+		var invert = false, tintRed = false, noise = false, lines = false, grayscale = false, circle = false;
 		
 		function init(){
 			// set up canvas stuff
@@ -54,7 +53,36 @@
 			// load and play default sound into audio element
 			playStream(audioElement,SOUND_1);
 			
-			// start animation loop
+			document.querySelector("#slider1").onchange = function(e){
+			 	console.log("value=" + e.target.value);
+			 	 document.querySelector("#sliderResults").innerHTML = e.target.value;
+				maxRadius = e.target.value * 200;
+			 };
+			 
+			 document.querySelector("#redTintCheck").onchange = function(e){
+				tintRed = !tintRed;
+			 };
+			 
+			 document.querySelector("#invertCheck").onchange = function(e){
+				invert = !invert;
+			 };
+			 
+			 document.querySelector("#noiseCheck").onchange = function(e){
+				noise = !noise;
+			 };
+			 
+			 document.querySelector("#linesCheck").onchange = function(e){
+				lines = !lines;
+			 };
+			 
+			 document.querySelector("#grayscaleCheck").onchange = function(e){
+				grayscale = !grayscale;
+			 };
+			 
+			 document.querySelector("#circleCheck").onchange = function(e){
+				circle = !circle;
+			 }
+			 
 			update();
 		}
 		
@@ -128,101 +156,117 @@
 			//analyserNode.getByteTimeDomainData(data); // waveform data
 			
 			// DRAW!
-			ctx.clearRect(0,0,800,600);  
+			if (!invert) {
+				document.getElementById("canvas").style.background = 'black';
+			}
+			else{
+				document.getElementById("canvas").style.background = 'white';
+			}
+			
+		    ctx.clearRect(0,0,800,600);
 			var barWidth = 4;
 			var barSpacing = 1;
 			var barHeight = 100;
 			var topSpacing = 50;
 			
 			// loop through the data and draw!
-			for(var i=0; i<data.length; i++) { 
-				ctx.fillStyle = 'rgba(0,255,0,0.6)'; 
-				ctx.strokeStyle = 'rgba(0,255,0,0.6)'; 
+			for(var i=0; i<data.length; i++) {
+				
+				if (circle)
+				{
+					var percent = data[i] / 255;
+					var circleRadius = percent * maxRadius;
+					ctx.beginPath();
+					ctx.fillStyle = makeColor(255, 111, 111, .34 - percent / 3.0);
+					ctx.arc(canvas.width / 2, canvas.height / 2, circleRadius, 0, 2 * Math.PI, false);
+					ctx.fill();
+					ctx.closePath();
+					
+					ctx.beginPath();
+					ctx.fillStyle = makeColor(0, 0, 255, .10 - percent / 10.0);
+					ctx.arc(canvas.width/2, canvas.height/2, circleRadius * 1.5, 0, 2 * Math.PI, false);
+					ctx.fill();
+					ctx.closePath();
+					
+					ctx.save();
+					ctx.beginPath();
+					ctx.fillStyle = makeColor(200, 200, 0, .5 - percent / 5.0);
+					ctx.arc(canvas.width/2, canvas.height/2, circleRadius * .5, 0, 2*Math.PI, false);
+					ctx.fill();
+					ctx.closePath();
+					ctx.restore();
+				}
+				
 				// the higher the amplitude of the sample (bin) the taller the bar
 				// remember we have to draw our bars left-to-right and top-down
-				//ctx.fillRect(i * (barWidth + barSpacing),topSpacing + 256-data[i],barWidth,barHeight); 
-				
-				//inverted bars
-				//ctx.fillRect(640 - i * (barWidth + barSpacing), topSpacing + 256-data[i] -20, barWidth,barHeight);
-				
-				ctx.beginPath();
-				ctx.moveTo(0,topSpacing * 8 + 256-data[i]);
-				ctx.lineTo(i * (barWidth + barSpacing),topSpacing + 256-data[i]);
-				ctx.stroke();
-				ctx.closePath();
-				
-				var percent = data[i] /255;
-				maxRadius = document.getElementById("slider").value;
-				var circleRadius = percent * maxRadius;
-				
-				ctx.beginPath();
-				ctx.fillStyle= makeColor(255,111, 111, .34 - percent/3.0);
-				ctx.arc(canvas.width/2,canvas.height/2,circleRadius, 0 ,2 * Math.PI, false);
-				ctx.fill();
-				ctx.closePath();
-				
-				ctx.beginPath();
-				ctx.fillStyle= makeColor(0,0, 255, .1 - percent/10.0);
-				ctx.arc(canvas.width/2,canvas.height/2,circleRadius * 1.5, 0 ,2 * Math.PI, false);
-				ctx.fill();
-				ctx.closePath();
-				
-				ctx.save();
-				ctx.beginPath();
-				ctx.fillStyle= makeColor(200,200, 0, .5 - percent/5.0);
-				ctx.arc(canvas.width/2,canvas.height/2,circleRadius * 0.5, 0 ,2 * Math.PI, false);
-				ctx.fill();
-				ctx.closePath();
-				ctx.restore();
+				//ctx.fillRect(i * (barWidth + barSpacing),topSpacing + 256-data[i],barWidth,barHeight);
+				if (data[i] > 0) 
+				{
+					ctx.beginPath();
+					ctx.fillStyle = makeColor(50 + (data[i] * 2), 300 - (data[i] * 2), 0, 1);
+					ctx.arc(3 + i * (barWidth + barSpacing), topSpacing/2 + (256-data[i])/1.5, 5, 0, 2 * Math.PI, false);
+					ctx.fill();
+					ctx.closePath();
+					
+					//ctx.fillRect(640 - i * (barWidth + barSpacing), topSpacing + 256-data[i] - 20, barWidth, barHeight);
+					ctx.beginPath();
+					ctx.fillStyle = makeColor(0, 300 - (data[i] * 2), 50 + (data[i] * 2), 1);
+					ctx.arc(3 + i * (barWidth + barSpacing), canvas.height - (256-data[i])/1.5 - 34, 5, 0, 2 * Math.PI, false);
+					ctx.fill();
+					ctx.closePath();
+					
+					ctx.beginPath();
+					ctx.strokeStyle = "white";
+					ctx.moveTo(3 + i * (barWidth + barSpacing), topSpacing/2 + (256-data[i])/1.5);
+					ctx.lineTo(3 + i * (barWidth + barSpacing), canvas.height - (256-data[i])/1.5 - 34);
+					ctx.stroke();
+					ctx.closePath();
+				}
 			}
-			 manipulatePixels()
-		} 
+			
+			manipulatePixels();
+			 
+		}
 		
-		function manipulatePixels(){
-		var imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
-		var data = imageData.data;
-		var length = data.length;
-		var width = imageData.width;
-		
-		if (document.getElementById("invert").checked == true){
-		invert = true;}
-		else invert = false;
-		
-		if (document.getElementById("tintRed").checked == true){
-		tintRed = true;}
-		else tintRed = false;
-		
-		if (document.getElementById("lines").checked == true){
-		lines = true;}
-		else lines = false;
-		
-		if (document.getElementById("noise").checked == true){
-		noise = true;}
-		else noise = false;
-		
-		for(var i = 0; i < length; i += 4){
-		if (tintRed){
-		data[i] = data[i] + 100;
-		}
-		if(invert){
-		var red = data[i], green = data[i + 1], blue = data[i+2];
-		data[i] = 255 - red;
-		data[i+1] = 255 - green;
-		data[i+2] = 255 - blue;
-		}
-		if(noise && Math.random() < .10){
-		data[i] = data[i+1] = data[i+2] = 128;
-		data[i+3] = 255;
-		}
-		if(lines){
-		var row = Math.floor(i/4/width);
-		if (row % 50 ==0){
-		data[i+ (width*4)] = data[i+ (width*4)+ 1] = data[i+ (width*4)+2] = data[i+ (width*4)+3] = 255;1
-		}
-		}
-		}
-		ctx.putImageData(imageData, 0, 0);
-		}
+		function manipulatePixels() {
+            var imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
+			var data = imageData.data;
+			var length = data.length;
+			var width = imageData.width;
+			
+			for (var i = 0; i < length; i += 4)
+			{
+				if (tintRed) {
+                    data[i] = data[i] + 100;
+                }
+				
+				if (invert) {
+					data[i] = 255 - data[i];
+					data[i+1] = 255 - data[i+1];
+					data[i+2] = 255 - data[i+2];
+                }
+				
+				if (noise && Math.random() < .1) {
+                    data[i] = data[i+1] = data[i+2] = 128;
+					data[i+3] = 255;
+                }
+				
+				if (lines) {
+                    var row = Math.floor(i/4/width);
+					if (row % 50 == 0) {
+                        data[i] = data[i+1] = data[i+2] = data[i+3] = 255;
+						data[i + (width*4)] = data[i + (width*4) + 1] = data[i + (width*4) + 2] = data[i + (width*4) + 3] = 255;
+                    }
+                }
+				
+				if (grayscale) {
+                    var average = (data[i] + data[i+1] + data[i+2]) / 3;
+					data[i] = data [i+1] = data[i+2] = average;
+					//data[i+3] = 255;
+                }
+			}
+			ctx.putImageData(imageData, 0, 0);
+        }
 		
 		// HELPER
 		function makeColor(red, green, blue, alpha){
@@ -262,25 +306,18 @@
 			</select>
 		</label>
 		<button id="fsButton">Go Full Screen</button><br>
-		<label for="slider">Circle Radius</label>
-		<input id="slider" type ="range" min ="1" max="300" step ="1" value ="100"/>
-		<span>
-			<label for="invert">Invert</label>
-			<input type="checkbox" id="invert" checked="false">
-		</span>
-		<span>
-			<label for="tintRed">Tint Red</label>
-			<input type="checkbox" id="tintRed" checked="false">
-		</span>
-		<span>
-			<label for="lines">Lines</label>
-			<input type="checkbox" id="lines" checked="false">
-		</span>
-		<span>
-			<label for="noise">Noise</label>
-			<input type="checkbox" id="noise" checked="false">
-		</span>
 		<p id="status">???</p>
+		
+		<label>Circle Radius: </label>
+		<input id="slider1" type ="range" min ="0.1" max="1.0" step ="0.1" value ="0.5"/>
+		<span id="sliderResults">0.5</span><br/><br/>
+		
+		<input id="redTintCheck" type="checkbox" value="false">Tint Red |</input>
+		<input id="invertCheck" type="checkbox" value="false">Invert |</input>
+		<input id="noiseCheck" type="checkbox" value="false">Noise |</input>
+		<input id="linesCheck" type="checkbox" value="false">Lines |</input>
+		<input id="grayscaleCheck" type="checkbox" value="false">Grayscale |</input>
+		<input id="circleCheck" type="checkbox" value="false">Draw Circle</input>
 	</div>
 </body>
 </html>
