@@ -2,23 +2,51 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8" />
-	<title>Web Audio Visualizer</title>
+	<title>Audio Viz</title>
 	<style>
 	body {
          background: #eeeeee;
          font-family: tahoma, verdana, sans serif;
       }
+      
+      h1,h2{
+	text-align: center;
+	margin: auto;
+      }
 
       canvas {
-        margin-left:10px;
-        margin-top:10px;
+        margin: 10px;
         box-shadow: 4px 4px 8px rgba(0,0,0,0.5);
         background: black;
+	clear: right;
+	
     }
+      
+      #pageWrap{
+	height: auto;
+	width: 75em;
+	margin-left: auto;
+	margin-right: auto;
+      }
       
       #controls{
       	margin-left:10px;
         margin-top:10px;
+	padding: 1em;
+	background: gray;
+	width: 30em;
+	float: right;
+	box-shadow: 4px 4px 8px rgba(0,0,0,0.5);
+      }
+      
+      p{
+	margin: .2em;
+	color: white;
+	font-size: 20px;
+      }
+      
+      #circControls{
+	display: none;
       }
 	</style>
 	<script>
@@ -30,11 +58,12 @@
 		var SOUND_1 = 'media/New Adventure Theme.mp3';
 		var SOUND_2 = 'media/Peanuts Theme.mp3';
 		var SOUND_3 = 'media/The Picard Song.mp3';
+		var SOUND_4 = 'media/Celestial.mp3';
 		var audioElement;
 		var analyserNode;
 		var canvas,ctx;
 		var maxRadius = 100;
-		var invert = false, tintRed = false, noise = false, lines = false, grayscale = false, circle = false;
+		var invert = true, tintRed = false, noise = false, grayscale = false, circle = false, eq = true, wave = false;
 		
 		function init(){
 			// set up canvas stuff
@@ -51,7 +80,7 @@
 			setupUI();
 			
 			// load and play default sound into audio element
-			playStream(audioElement,SOUND_1);
+			playStream(audioElement,SOUND_4);
 			
 			document.querySelector("#slider1").onchange = function(e){
 			 	console.log("value=" + e.target.value);
@@ -71,16 +100,20 @@
 				noise = !noise;
 			 };
 			 
-			 document.querySelector("#linesCheck").onchange = function(e){
-				lines = !lines;
-			 };
-			 
 			 document.querySelector("#grayscaleCheck").onchange = function(e){
 				grayscale = !grayscale;
 			 };
 			 
 			 document.querySelector("#circleCheck").onchange = function(e){
 				circle = !circle;
+			 }
+			 
+			 document.querySelector("#eqCheck").onchange = function(e){
+				eq = !eq;
+			 }
+			 
+			  document.querySelector("#waveCheck").onchange = function(e){
+				wave = !wave;
 			 }
 			 
 			update();
@@ -146,14 +179,15 @@
 			*/
 			
 			// create a new array of 8-bit integers (0-255)
-			var data = new Uint8Array(NUM_SAMPLES/2); 
+			var data = new Uint8Array(NUM_SAMPLES/2);
+			var waveForm = new Uint8Array(NUM_SAMPLES/2);
 			
 			// populate the array with the frequency data
 			// notice these arrays can be passed "by reference" 
 			analyserNode.getByteFrequencyData(data);
 		
 			// OR
-			//analyserNode.getByteTimeDomainData(data); // waveform data
+			analyserNode.getByteTimeDomainData(waveForm); // waveform data
 			
 			// DRAW!
 			if (!invert) {
@@ -161,6 +195,13 @@
 			}
 			else{
 				document.getElementById("canvas").style.background = 'white';
+			}
+			
+			if (circle) {
+				document.getElementById("circControls").style.display = "block";
+			}
+			else{
+				document.getElementById("circControls").style.display = "none";
 			}
 			
 		    ctx.clearRect(0,0,800,600);
@@ -178,20 +219,20 @@
 					var circleRadius = percent * maxRadius;
 					ctx.beginPath();
 					ctx.fillStyle = makeColor(255, 111, 111, .34 - percent / 3.0);
-					ctx.arc(canvas.width / 2, canvas.height / 2, circleRadius, 0, 2 * Math.PI, false);
+					ctx.arc(canvas.width / 2, canvas.height / 2 - 4, circleRadius, 0, 2 * Math.PI, false);
 					ctx.fill();
 					ctx.closePath();
 					
 					ctx.beginPath();
 					ctx.fillStyle = makeColor(0, 0, 255, .10 - percent / 10.0);
-					ctx.arc(canvas.width/2, canvas.height/2, circleRadius * 1.5, 0, 2 * Math.PI, false);
+					ctx.arc(canvas.width/2, canvas.height/2 - 4, circleRadius * 1.5, 0, 2 * Math.PI, false);
 					ctx.fill();
 					ctx.closePath();
 					
 					ctx.save();
 					ctx.beginPath();
 					ctx.fillStyle = makeColor(200, 200, 0, .5 - percent / 5.0);
-					ctx.arc(canvas.width/2, canvas.height/2, circleRadius * .5, 0, 2*Math.PI, false);
+					ctx.arc(canvas.width/2, canvas.height/2 - 4, circleRadius * .5, 0, 2*Math.PI, false);
 					ctx.fill();
 					ctx.closePath();
 					ctx.restore();
@@ -200,28 +241,52 @@
 				// the higher the amplitude of the sample (bin) the taller the bar
 				// remember we have to draw our bars left-to-right and top-down
 				//ctx.fillRect(i * (barWidth + barSpacing),topSpacing + 256-data[i],barWidth,barHeight);
-				if (data[i] > 0) 
-				{
-					ctx.beginPath();
-					ctx.fillStyle = makeColor(50 + (data[i] * 2), 300 - (data[i] * 2), 0, 1);
-					ctx.arc(3 + i * (barWidth + barSpacing), topSpacing/2 + (256-data[i])/1.5, 5, 0, 2 * Math.PI, false);
-					ctx.fill();
-					ctx.closePath();
-					
-					//ctx.fillRect(640 - i * (barWidth + barSpacing), topSpacing + 256-data[i] - 20, barWidth, barHeight);
-					ctx.beginPath();
-					ctx.fillStyle = makeColor(0, 300 - (data[i] * 2), 50 + (data[i] * 2), 1);
-					ctx.arc(3 + i * (barWidth + barSpacing), canvas.height - (256-data[i])/1.5 - 34, 5, 0, 2 * Math.PI, false);
-					ctx.fill();
-					ctx.closePath();
-					
-					ctx.beginPath();
-					ctx.strokeStyle = "white";
-					ctx.moveTo(3 + i * (barWidth + barSpacing), topSpacing/2 + (256-data[i])/1.5);
-					ctx.lineTo(3 + i * (barWidth + barSpacing), canvas.height - (256-data[i])/1.5 - 34);
-					ctx.stroke();
-					ctx.closePath();
+				if (eq) {
+					if (data[i] > 0) 
+					{
+						
+						ctx.beginPath();
+						ctx.fillStyle = makeColor(75 + (data[i] * 2), 300 - (data[i] * 2), 0, 1);
+						ctx.arc(3 + i * (barWidth + barSpacing), topSpacing/2 + (256-data[i])/1.5, 5, 0, 2 * Math.PI, false);
+						ctx.fill();
+						ctx.closePath();
+						
+						//ctx.fillRect(640 - i * (barWidth + barSpacing), topSpacing + 256-data[i] - 20, barWidth, barHeight);
+						ctx.beginPath();
+						ctx.fillStyle = makeColor(0, 300 - (data[i] * 2), 75 + (data[i] * 2), 1);
+						ctx.arc(3 + i * (barWidth + barSpacing), canvas.height - (256-data[i])/1.5 - 34, 5, 0, 2 * Math.PI, false);
+						ctx.fill();
+						ctx.closePath();
+						
+						ctx.beginPath();
+						ctx.strokeStyle = "white";
+						ctx.moveTo(3 + i * (barWidth + barSpacing), topSpacing/2 + (256-data[i])/1.5);
+						ctx.lineTo(3 + i * (barWidth + barSpacing), canvas.height - (256-data[i])/1.5 - 34);
+						ctx.stroke();
+						ctx.closePath();
+					}
 				}
+			}
+			
+			if (wave) {
+				ctx.save();
+				if (waveForm.length > 0) {
+					var dist = canvas.width / waveForm.length + 2;
+					ctx.beginPath();
+					
+					ctx.strokeStyle = "white";
+					ctx.lineWidth = 2;
+					
+					ctx.moveTo(0, waveForm[0] * 2 - 60);
+					
+					for(var i=1; i<waveForm.length; i++)
+					{
+						ctx.lineTo(dist * i, (waveForm[i] * 2) - 60);
+					}
+					
+					ctx.stroke();
+				}
+				ctx.restore();
 			}
 			
 			manipulatePixels();
@@ -229,7 +294,7 @@
 		}
 		
 		function manipulatePixels() {
-            var imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
+			var imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
 			var data = imageData.data;
 			var length = data.length;
 			var width = imageData.width;
@@ -237,33 +302,25 @@
 			for (var i = 0; i < length; i += 4)
 			{
 				if (tintRed) {
-                    data[i] = data[i] + 100;
-                }
+				data[i] = data[i] + 175;
+				}
 				
 				if (invert) {
 					data[i] = 255 - data[i];
 					data[i+1] = 255 - data[i+1];
 					data[i+2] = 255 - data[i+2];
-                }
+				}
 				
 				if (noise && Math.random() < .1) {
-                    data[i] = data[i+1] = data[i+2] = 128;
+					data[i] = data[i+1] = data[i+2] = 128;
 					data[i+3] = 255;
-                }
-				
-				if (lines) {
-                    var row = Math.floor(i/4/width);
-					if (row % 50 == 0) {
-                        data[i] = data[i+1] = data[i+2] = data[i+3] = 255;
-						data[i + (width*4)] = data[i + (width*4) + 1] = data[i + (width*4) + 2] = data[i + (width*4) + 3] = 255;
-                    }
-                }
+				}
 				
 				if (grayscale) {
-                    var average = (data[i] + data[i+1] + data[i+2]) / 3;
+					var average = (data[i] + data[i+1] + data[i+2]) / 3;
 					data[i] = data [i+1] = data[i+2] = average;
 					//data[i+3] = 255;
-                }
+				}
 			}
 			ctx.putImageData(imageData, 0, 0);
         }
@@ -295,29 +352,46 @@
 	</script>
 </head>
 <body>
+	<div id="pageWrap">
+	<h1>Audio Visualizer</h1>
+	<h2>Austin Willoughby & Donald Pelcher</h2>
 	<canvas id="canvas" width="640" height="400"></canvas>
 	<div id="controls">
-		<audio controls loop></audio>
+		<audio controls loop></audio></br>
 		<label>Track: 
 			<select id="trackSelect" >
+				<option value="media/Celestial.mp3">Celestial</option>
 				<option value="media/New Adventure Theme.mp3">New Adventure Theme</option>
 				<option value="media/Peanuts Theme.mp3">Peanuts Theme</option>
 				<option value="media/The Picard Song.mp3">The Picard Song</option>
 			</select>
 		</label>
 		<button id="fsButton">Go Full Screen</button><br>
-		<p id="status">???</p>
+		<p id="status">???</p></br>
 		
+		<p>Visualizers</p>
+		<input id="eqCheck" type="checkbox" value="true" checked=true>Equalizer</input></br>	
+		<input id="waveCheck" type="checkbox" value="false">Waveform</input></br>
+		<input id="circleCheck" type="checkbox" value="false">Circle</input></br>
+		<input id="curveCheck" type="checkbox" value="false">Curves</input></br>
+		
+		</br>
+		
+		<div id="circControls">
+		<p>Circle Controls</p>
 		<label>Circle Radius: </label>
 		<input id="slider1" type ="range" min ="0.1" max="1.0" step ="0.1" value ="0.5"/>
 		<span id="sliderResults">0.5</span><br/><br/>
+		</div>
 		
-		<input id="redTintCheck" type="checkbox" value="false">Tint Red |</input>
-		<input id="invertCheck" type="checkbox" value="false">Invert |</input>
-		<input id="noiseCheck" type="checkbox" value="false">Noise |</input>
-		<input id="linesCheck" type="checkbox" value="false">Lines |</input>
-		<input id="grayscaleCheck" type="checkbox" value="false">Grayscale |</input>
-		<input id="circleCheck" type="checkbox" value="false">Draw Circle</input>
+		<p>Effects</p>
+		<input id="redTintCheck" type="checkbox" value="false">Tint Red</input></br>
+		<input id="invertCheck" type="checkbox" value="true" checked="true">Invert</input></br>
+		<input id="noiseCheck" type="checkbox" value="false">Noise</input></br>
+		<input id="grayscaleCheck" type="checkbox" value="false">Grayscale</input></br></br>
+		
+
+	</div>
 	</div>
 </body>
 </html>
