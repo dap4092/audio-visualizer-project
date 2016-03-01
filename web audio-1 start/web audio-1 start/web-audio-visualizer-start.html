@@ -63,7 +63,8 @@
 		var analyserNode;
 		var canvas,ctx;
 		var maxRadius = 100;
-		var invert = true, tintRed = false, noise = false, grayscale = false, circle = false, eq = true, wave = false;
+		var invert = false, tintRed = false, noise = false, grayscale = false, circle = false, eq = true, wave = false, tintBlue = false, tintGreen = false;
+		var darken = false, brighten = false;
 		
 		function init(){
 			// set up canvas stuff
@@ -92,8 +93,24 @@
 				tintRed = !tintRed;
 			 };
 			 
+			 document.querySelector("#greenTintCheck").onchange = function(e){
+				tintGreen = !tintGreen;
+			 };
+			 
+			 document.querySelector("#blueTintCheck").onchange = function(e){
+				tintBlue = !tintBlue;
+			 };
+			 
 			 document.querySelector("#invertCheck").onchange = function(e){
 				invert = !invert;
+			 };
+			 
+			 document.querySelector("#darkenCheck").onchange = function(e){
+				darken = !darken;
+			 };
+			 
+			 document.querySelector("#brightenCheck").onchange = function(e){
+				brighten = !brighten;
 			 };
 			 
 			 document.querySelector("#noiseCheck").onchange = function(e){
@@ -305,10 +322,30 @@
 				data[i] = data[i] + 175;
 				}
 				
+				if (tintGreen) {
+				data[i+1] = data[i+1] + 175;
+				}
+				
+				if (tintBlue) {
+				data[i+2] = data[i+2] + 175;
+				}
+				
 				if (invert) {
 					data[i] = 255 - data[i];
 					data[i+1] = 255 - data[i+1];
 					data[i+2] = 255 - data[i+2];
+				}
+				
+				if (darken) {
+				data[i] = data[i] - 125;
+				data[i+1] = data[i+1] - 125;
+				data[i+2] = data[i+2] - 125;
+				}
+				
+				if (brighten) {
+				data[i] = data[i] + 125;
+				data[i+1] = data[i+1] + 125;
+				data[i+2] = data[i+2] + 125;
 				}
 				
 				if (noise && Math.random() < .1) {
@@ -386,9 +423,14 @@
 		
 		<p>Effects</p>
 		<input id="redTintCheck" type="checkbox" value="false">Tint Red</input></br>
+		<input id="greenTintCheck" type="checkbox" value="false">Tint Green</input></br>
+		<input id="blueTintCheck" type="checkbox" value="false">Tint Blue</input></br>
 		<input id="invertCheck" type="checkbox" value="true" checked="true">Invert</input></br>
 		<input id="noiseCheck" type="checkbox" value="false">Noise</input></br>
-		<input id="grayscaleCheck" type="checkbox" value="false">Grayscale</input></br></br>
+		<input id="grayscaleCheck" type="checkbox" value="false">Grayscale</input></br>
+		<input id="darkenCheck" type="checkbox" value="false">Darken</input></br>
+		<input id="brightenCheck" type="checkbox" value="false">Brighten</input></br>
+		</br>
 		
 
 	</div>
