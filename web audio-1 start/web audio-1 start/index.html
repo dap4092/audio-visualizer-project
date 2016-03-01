@@ -67,7 +67,7 @@
 		var canvas,ctx;
 		var maxRadius = 80;
 		var redTint = 0, greenTint = 0, blueTint = 0;
-		var invert = true, tint = false, noise = false, grayscale = false, circle = false, eq = true, wave = false, curves = true;
+		var invert = true, tint = false, noise = false, grayscale = false, circle = false, eq = true, wave = false, curves = true, darken = false, brighten = false;;
 		var noiseColor = "black";
 		
 		function init(){
@@ -155,6 +155,15 @@
 			 document.querySelector("#noiseSelect").onchange = function(e){
 				noiseColor = e.target.value;
 			};
+			
+			document.querySelector("#darkenCheck").onchange = function(e){
+				darken = !darken;
+			 };
+			 
+			 document.querySelector("#brightenCheck").onchange = function(e){
+				brighten = !brighten;
+			 };
+			
 			update();
 		}
 		
@@ -408,7 +417,19 @@
 					data[i+2] = 255 - data[i+2];
 				}
 				
-				if (noise && Math.random() < .1) {
+				if (darken) {
+					data[i] = data[i] - 125;
+					data[i+1] = data[i+1] - 125;
+					data[i+2] = data[i+2] - 125;
+				}
+				
+				if (brighten) {
+					data[i] = data[i] + 125;
+					data[i+1] = data[i+1] + 125;
+					data[i+2] = data[i+2] + 125;
+				}
+				
+				if(noise && Math.random() < .1) {
 					
 					if (noiseColor == "black") {
 						data[i] = data[i+1] = data[i+2] = 0;
@@ -500,6 +521,8 @@
 			<p>Effects</p>
 				<input id="invertCheck" type="checkbox" value="true" checked="true">Invert</input></br>
 				<input id="noiseCheck" type="checkbox" value="false">Noise</input></br>
+				<input id="darkenCheck" type="checkbox" value="false">Darken</input></br>
+				<input id="brightenCheck" type="checkbox" value="false">Brighten</input></br>
 				
 			<div id="noiseControls">
 				<p>Noise Controls</p>
